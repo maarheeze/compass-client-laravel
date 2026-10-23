@@ -29,13 +29,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Pages
+    | Endpoints
     |--------------------------------------------------------------------------
     |
-    | The paths of the pages Compass checks for uptime, separated by a comma.
+    | The paths of the endpoints Compass checks for uptime, separated by a comma.
     |
     */
 
-    'pages' => env('COMPASS_CLIENT_PAGES', '/'),
+    'endpoints' => env('COMPASS_CLIENT_ENDPOINTS', '/'),
 
 ];

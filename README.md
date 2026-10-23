@@ -24,10 +24,10 @@ If you want to override the path the status is served at, which defaults to `/_c
 COMPASS_CLIENT_PATH=/_compass
 ```
 
-The pages Compass checks for uptime, separated by a comma, defaults to `/`:
+The endpoints Compass checks for uptime, separated by a comma, defaults to `/`:
 
 ```dotenv
-COMPASS_CLIENT_PAGES=/,/contact
+COMPASS_CLIENT_ENDPOINTS=/,/contact
 ```
 
 ### Publishing the config
