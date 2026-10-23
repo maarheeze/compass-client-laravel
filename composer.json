@@ -1,0 +1,47 @@
+{
+    "name": "maarheeze/compass-client-laravel",
+    "description": "Exposes the status of a Laravel site to Compass",
+    "keywords": [
+        "laravel",
+        "compass",
+        "monitoring"
+    ],
+    "license": "MIT",
+    "type": "library",
+    "require": {
+        "php": "^8.5",
+        "laravel/framework": "^13.17"
+    },
+    "require-dev": {
+        "larastan/larastan": "^3.13",
+        "maarheeze/guidelines": "^1.8",
+        "maarheeze/phpcs": "^4.0",
+        "orchestra/testbench": "^11.3",
+        "phpunit/phpunit": "^13"
+    },
+    "autoload": {
+        "psr-4": {
+            "Maarheeze\\CompassClient\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Maarheeze\\CompassClient\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Maarheeze\\CompassClient\\CompassClientServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
