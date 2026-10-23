@@ -1,6 +1,6 @@
 {
     "name": "maarheeze/compass-client-laravel",
-    "description": "Exposes the status of a Laravel site to Compass",
+    "description": "exposes the status of a laravel site to compass",
     "keywords": [
         "laravel",
         "compass",
