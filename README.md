@@ -30,6 +30,12 @@ The endpoints Compass checks for uptime, separated by a comma, defaults to `/`:
 COMPASS_CLIENT_ENDPOINTS=/,/contact
 ```
 
+When [Laravel Nightwatch](https://nightwatch.laravel.com) is installed, the requests from Compass are left out of it. To record them anyway:
+
+```dotenv
+COMPASS_CLIENT_NIGHTWATCH_IGNORE=false
+```
+
 ### Publishing the config
 
 To customize settings beyond the environment variables, publish the config file to `config/compass-client.php`:

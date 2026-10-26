@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Nightwatch ignore
+    |--------------------------------------------------------------------------
+    |
+    | Whether the requests from Compass are left out of Laravel Nightwatch.
+    | It only takes effect when Nightwatch is installed.
+    |
+    */
+
+    'nightwatch_ignore' => env('COMPASS_CLIENT_NIGHTWATCH_IGNORE', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Key
     |--------------------------------------------------------------------------
     |

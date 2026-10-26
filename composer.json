@@ -14,6 +14,7 @@
     },
     "require-dev": {
         "larastan/larastan": "^3.13",
+        "laravel/nightwatch": "^1.30",
         "maarheeze/guidelines": "^1.8",
         "maarheeze/phpcs": "^4.0",
         "orchestra/testbench": "^11.3",
@@ -35,6 +36,11 @@
                 "Maarheeze\\CompassClient\\CompassClientServiceProvider"
             ]
         }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@php vendor/bin/testbench package:discover --ansi"
+        ]
     },
     "config": {
         "sort-packages": true,

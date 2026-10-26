@@ -11,6 +11,12 @@ use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
 {
+    /**
+     * @var bool
+     * @phpcsSuppress SlevomatCodingStandard.TypeHints.PropertyTypeHint.MissingNativeTypeHint
+     */
+    protected $enablesPackageDiscoveries = true;
+
     public function setConfiguration(string $key, mixed $value): void
     {
         $configuration = $this->app->make(Repository::class);

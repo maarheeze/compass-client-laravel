@@ -8,10 +8,12 @@ use Illuminate\Config\Repository;
 use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance;
 use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Nightwatch\Http\Middleware\Sample;
 use Maarheeze\CompassClient\Http\Controllers\StatusController;
 use Maarheeze\CompassClient\Http\Middleware\AuthenticateCompass;
 use Maarheeze\CompassClient\Http\RouteName;
 
+use function class_exists;
 use function config_path;
 use function sprintf;
 
@@ -26,9 +28,13 @@ class CompassClientServiceProvider extends ServiceProvider
     {
         $path = $config->string('compass-client.path');
 
-        $router->get($path, StatusController::class)
-            ->middleware(AuthenticateCompass::class)
-            ->name(RouteName::STATUS);
+        $route = $router->get($path, StatusController::class)->name(RouteName::STATUS);
+
+        if ($config->boolean('compass-client.nightwatch_ignore') && class_exists(Sample::class)) {
+            $route->middleware(Sample::never());
+        }
+
+        $route->middleware(AuthenticateCompass::class);
         PreventRequestsDuringMaintenance::except($path);
 
         if (!$this->app->runningInConsole()) {
