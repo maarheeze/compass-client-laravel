@@ -24,10 +24,16 @@ If you want to override the path the status is served at, which defaults to `/_c
 COMPASS_CLIENT_PATH=/_compass
 ```
 
-The endpoints Compass checks for uptime, separated by a comma, defaults to `/`:
+The paths Compass checks for uptime, separated by a comma, defaults to `/`:
 
 ```dotenv
-COMPASS_CLIENT_ENDPOINTS=/,/contact
+COMPASS_CLIENT_UPTIME_CHECK_PATHS=/,/contact
+```
+
+The names of the routes Compass checks for uptime, separated by a comma, defaults to none. They are reported as their paths, so a route with required parameters cannot be used:
+
+```dotenv
+COMPASS_CLIENT_UPTIME_CHECK_ROUTES=home,contact
 ```
 
 When [Laravel Nightwatch](https://nightwatch.laravel.com) is installed, the requests from Compass are left out of it. To record them anyway:

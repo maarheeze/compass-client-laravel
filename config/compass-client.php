@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 use Webmozart\Assert\Assert;
 
-$endpoints = env('COMPASS_CLIENT_ENDPOINTS', '/');
-Assert::string($endpoints);
+$uptimeCheckPaths = env('COMPASS_CLIENT_UPTIME_CHECK_PATHS', '/');
+Assert::string($uptimeCheckPaths);
+
+$uptimeCheckRoutes = env('COMPASS_CLIENT_UPTIME_CHECK_ROUTES', '');
+Assert::string($uptimeCheckRoutes);
 
 return [
 
@@ -46,14 +49,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Endpoints
+    | Uptime checks
     |--------------------------------------------------------------------------
     |
-    | The paths of the endpoints Compass checks for uptime. In the environment
-    | variable they are separated by a comma.
+    | What Compass checks for uptime: paths, and the names of routes that are
+    | reported as their paths. In the environment variables they are
+    | separated by a comma.
     |
     */
 
-    'endpoints' => array_map(trim(...), explode(',', $endpoints)),
+    'uptime_checks' => [
+        'paths' => array_values(array_filter(array_map(trim(...), explode(',', $uptimeCheckPaths)))),
+        'routes' => array_values(array_filter(array_map(trim(...), explode(',', $uptimeCheckRoutes)))),
+    ],
 
 ];
