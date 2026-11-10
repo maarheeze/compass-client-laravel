@@ -11,7 +11,6 @@ use Maarheeze\CompassClient\Status;
 use Maarheeze\CompassClient\Tests\TestCase;
 
 use function fake;
-use function implode;
 use function route;
 
 class StatusControllerTest extends TestCase
@@ -31,7 +30,7 @@ class StatusControllerTest extends TestCase
         $this->setConfiguration('app.env', $environment);
         $this->setConfiguration('app.name', $name);
         $this->setConfiguration('compass-client.key', $key);
-        $this->setConfiguration('compass-client.endpoints', implode(', ', $endpoints));
+        $this->setConfiguration('compass-client.endpoints', $endpoints);
 
         $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
 

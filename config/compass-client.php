@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+use Webmozart\Assert\Assert;
+
+$endpoints = env('COMPASS_CLIENT_ENDPOINTS', '/');
+Assert::string($endpoints);
+
 return [
 
     /*
@@ -44,10 +49,11 @@ return [
     | Endpoints
     |--------------------------------------------------------------------------
     |
-    | The paths of the endpoints Compass checks for uptime, separated by a comma.
+    | The paths of the endpoints Compass checks for uptime. In the environment
+    | variable they are separated by a comma.
     |
     */
 
-    'endpoints' => env('COMPASS_CLIENT_ENDPOINTS', '/'),
+    'endpoints' => array_map(trim(...), explode(',', $endpoints)),
 
 ];

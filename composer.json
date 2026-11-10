@@ -10,7 +10,8 @@
     "type": "library",
     "require": {
         "php": "^8.3",
-        "laravel/framework": "^13.17"
+        "laravel/framework": "^13.17",
+        "webmozart/assert": "^2.5"
     },
     "require-dev": {
         "larastan/larastan": "^3.13",
@@ -18,7 +19,7 @@
         "maarheeze/guidelines": "^1.8",
         "maarheeze/phpcs": "^4.0",
         "orchestra/testbench": "^11.3",
-        "phpunit/phpunit": "^13"
+        "phpunit/phpunit": "^13.4"
     },
     "autoload": {
         "psr-4": {
