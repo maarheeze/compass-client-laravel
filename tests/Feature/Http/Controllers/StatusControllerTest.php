@@ -6,8 +6,8 @@ namespace Maarheeze\CompassClient\Tests\Feature\Http\Controllers;
 
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\Routing\UrlGenerator;
 use Illuminate\Routing\Router;
+use Illuminate\Routing\UrlGenerator;
 use Maarheeze\CompassClient\Http\RouteName;
 use Maarheeze\CompassClient\Status;
 use Maarheeze\CompassClient\Tests\TestCase;
@@ -64,6 +64,19 @@ class StatusControllerTest extends TestCase
         $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
 
         $response->assertJsonPath('endpoints', [$path]);
+    }
+
+    public function testEndpointsContainThePathsOfTheUptimeCheckEnumRoutes(): void
+    {
+        $key = fake()->sha1();
+
+        $this->setConfiguration('compass-client.key', $key);
+        $this->setConfiguration('compass-client.uptime_checks.paths', []);
+        $this->setConfiguration('compass-client.uptime_checks.routes', [RouteName::STATUS]);
+
+        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+
+        $response->assertJsonPath('endpoints', [route(RouteName::STATUS, [], false)]);
     }
 
     public function testStatusContainsTheValuesOfABoundStatus(): void

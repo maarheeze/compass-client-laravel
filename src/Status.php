@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Maarheeze\CompassClient;
 
+use BackedEnum;
 use Illuminate\Config\Repository;
-use Illuminate\Contracts\Routing\UrlGenerator;
+use Illuminate\Routing\UrlGenerator;
+use InvalidArgumentException;
 use Webmozart\Assert\Assert;
 
 use function array_map;
+use function is_string;
 
 class Status
 {
@@ -41,10 +44,17 @@ class Status
     {
         $uptimeCheckRouteNames = $this->config->array('compass-client.uptime_checks.routes');
         Assert::isList($uptimeCheckRouteNames);
-        Assert::allString($uptimeCheckRouteNames);
 
-        return array_map(function (string $routeName): string {
-            return $this->urlGenerator->route($routeName, [], false);
+        return array_map(function (mixed $routeName): string {
+            if ($routeName instanceof BackedEnum) {
+                return $this->urlGenerator->route($routeName, [], false);
+            }
+
+            if (is_string($routeName)) {
+                return $this->urlGenerator->route($routeName, [], false);
+            }
+
+            throw new InvalidArgumentException('A route name must be a string or a backed enum.');
         },
         $uptimeCheckRouteNames);
     }
