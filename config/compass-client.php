@@ -2,14 +2,6 @@
 
 declare(strict_types=1);
 
-use Webmozart\Assert\Assert;
-
-$uptimeCheckPaths = env('COMPASS_CLIENT_UPTIME_CHECK_PATHS', '/');
-Assert::string($uptimeCheckPaths);
-
-$uptimeCheckRoutes = env('COMPASS_CLIENT_UPTIME_CHECK_ROUTES', '');
-Assert::string($uptimeCheckRoutes);
-
 return [
 
     /*
@@ -40,8 +32,9 @@ return [
     | Key
     |--------------------------------------------------------------------------
     |
-    | The key Compass sends as a bearer token. It is the same key on every
-    | site and in Compass itself. Without a key every request is refused.
+    | The key Compass sends as a bearer token. Compass generates it for this
+    | site and shows it on the site's page. Without a key every request is
+    | refused.
     |
     */
 
@@ -53,14 +46,16 @@ return [
     |--------------------------------------------------------------------------
     |
     | What Compass checks for uptime: paths, and the names of routes that are
-    | reported as their paths. In the environment variables they are
-    | separated by a comma.
+    | reported as their paths. Each is checked every 15 minutes, or at the
+    | number of minutes given with it: '/' => 30.
     |
     */
 
     'uptime_checks' => [
-        'paths' => array_values(array_filter(array_map(trim(...), explode(',', $uptimeCheckPaths)))),
-        'routes' => array_values(array_filter(array_map(trim(...), explode(',', $uptimeCheckRoutes)))),
+        'paths' => [
+            '/',
+        ],
+        'routes' => [],
     ],
 
 ];

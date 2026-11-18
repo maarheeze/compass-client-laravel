@@ -10,11 +10,13 @@ use Illuminate\Routing\UrlGenerator;
 use InvalidArgumentException;
 use Webmozart\Assert\Assert;
 
-use function array_map;
+use function is_int;
 use function is_string;
 
 class Status
 {
+    private const int DEFAULT_FREQUENCY_MINUTES = 15;
+
     public function __construct(
         protected readonly Repository $config,
         protected readonly UrlGenerator $urlGenerator,
@@ -31,31 +33,65 @@ class Status
             'app_env' => $this->config->string('app.env'),
             'app_name' => $this->config->string('app.name'),
             'endpoints' => [
-                ...$this->config->array('compass-client.uptime_checks.paths'),
-                ...$this->uptimeCheckRoutePaths(),
+                ...$this->uptimeCheckPathEndpoints(),
+                ...$this->uptimeCheckRouteEndpoints(),
             ],
         ];
     }
 
     /**
-     * @return list<string>
+     * @return array{path: string, frequency_minutes: int}
      */
-    private function uptimeCheckRoutePaths(): array
+    private function endpoint(string $path, int $frequencyMinutes): array
     {
-        $uptimeCheckRouteNames = $this->config->array('compass-client.uptime_checks.routes');
-        Assert::isList($uptimeCheckRouteNames);
+        return [
+            'path' => $path,
+            'frequency_minutes' => $frequencyMinutes,
+        ];
+    }
 
-        return array_map(function (mixed $routeName): string {
-            if ($routeName instanceof BackedEnum) {
-                return $this->urlGenerator->route($routeName, [], false);
-            }
+    private function routePath(mixed $routeName): string
+    {
+        if ($routeName instanceof BackedEnum) {
+            return $this->urlGenerator->route($routeName, [], false);
+        }
 
-            if (is_string($routeName)) {
-                return $this->urlGenerator->route($routeName, [], false);
-            }
+        if (is_string($routeName)) {
+            return $this->urlGenerator->route($routeName, [], false);
+        }
 
-            throw new InvalidArgumentException('A route name must be a string or a backed enum.');
-        },
-        $uptimeCheckRouteNames);
+        throw new InvalidArgumentException('A route name must be a string or a backed enum.');
+    }
+
+    /**
+     * @return list<array{path: string, frequency_minutes: int}>
+     */
+    private function uptimeCheckPathEndpoints(): array
+    {
+        $uptimeCheckPathEndpoints = [];
+
+        foreach ($this->config->array('compass-client.uptime_checks.paths') as $key => $value) {
+            $uptimeCheckPathEndpoints[] = is_int($key)
+                ? $this->endpoint(Assert::string($value), self::DEFAULT_FREQUENCY_MINUTES)
+                : $this->endpoint($key, Assert::positiveInteger($value));
+        }
+
+        return $uptimeCheckPathEndpoints;
+    }
+
+    /**
+     * @return list<array{path: string, frequency_minutes: int}>
+     */
+    private function uptimeCheckRouteEndpoints(): array
+    {
+        $uptimeCheckRouteEndpoints = [];
+
+        foreach ($this->config->array('compass-client.uptime_checks.routes') as $key => $value) {
+            $uptimeCheckRouteEndpoints[] = is_int($key)
+                ? $this->endpoint($this->routePath($value), self::DEFAULT_FREQUENCY_MINUTES)
+                : $this->endpoint($this->routePath($key), Assert::positiveInteger($value));
+        }
+
+        return $uptimeCheckRouteEndpoints;
     }
 }

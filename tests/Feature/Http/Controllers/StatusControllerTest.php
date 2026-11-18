@@ -8,6 +8,7 @@ use Illuminate\Config\Repository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 use Illuminate\Routing\UrlGenerator;
+use InvalidArgumentException;
 use Maarheeze\CompassClient\Http\RouteName;
 use Maarheeze\CompassClient\Status;
 use Maarheeze\CompassClient\Tests\TestCase;
@@ -24,16 +25,23 @@ class StatusControllerTest extends TestCase
         $debug = fake()->boolean();
         $environment = fake()->word();
         $name = fake()->company();
-        $endpoints = [
-            fake()->slug(),
-            fake()->slug(),
+        $paths = [
+            sprintf('/%s', fake()->unique()->slug()),
+            sprintf('/%s', fake()->unique()->slug()),
+        ];
+        $frequenciesInMinutes = [
+            fake()->numberBetween(1, 60),
+            fake()->numberBetween(1, 60),
         ];
 
         $this->setConfiguration('app.debug', $debug);
         $this->setConfiguration('app.env', $environment);
         $this->setConfiguration('app.name', $name);
         $this->setConfiguration('compass-client.key', $key);
-        $this->setConfiguration('compass-client.uptime_checks.paths', $endpoints);
+        $this->setConfiguration('compass-client.uptime_checks.paths', [
+            $paths[0] => $frequenciesInMinutes[0],
+            $paths[1] => $frequenciesInMinutes[1],
+        ]);
 
         $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
 
@@ -41,11 +49,65 @@ class StatusControllerTest extends TestCase
             'app_debug' => $debug,
             'app_env' => $environment,
             'app_name' => $name,
-            'endpoints' => $endpoints,
+            'endpoints' => [
+                [
+                    'path' => $paths[0],
+                    'frequency_minutes' => $frequenciesInMinutes[0],
+                ],
+                [
+                    'path' => $paths[1],
+                    'frequency_minutes' => $frequenciesInMinutes[1],
+                ],
+            ],
+        ]);
+    }
+
+    public function testEndpointsCheckAPathWithoutAFrequencyEveryFifteenMinutes(): void
+    {
+        $key = fake()->sha1();
+        $path = sprintf('/%s', fake()->slug());
+
+        $this->setConfiguration('compass-client.key', $key);
+        $this->setConfiguration('compass-client.uptime_checks.paths', [$path]);
+
+        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+
+        $response->assertJsonPath('endpoints', [
+            [
+                'path' => $path,
+                'frequency_minutes' => 15,
+            ],
         ]);
     }
 
     public function testEndpointsContainThePathsOfTheUptimeCheckRoutes(): void
+    {
+        $key = fake()->sha1();
+        $path = sprintf('/%s', fake()->slug());
+        $routeName = fake()->slug();
+        $frequencyMinutes = fake()->numberBetween(1, 60);
+
+        $router = $this->app->make(Router::class);
+        $router->get($path, static function (): null {
+            return null;
+        })->name($routeName);
+        $router->getRoutes()->refreshNameLookups();
+
+        $this->setConfiguration('compass-client.key', $key);
+        $this->setConfiguration('compass-client.uptime_checks.paths', []);
+        $this->setConfiguration('compass-client.uptime_checks.routes', [$routeName => $frequencyMinutes]);
+
+        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+
+        $response->assertJsonPath('endpoints', [
+            [
+                'path' => $path,
+                'frequency_minutes' => $frequencyMinutes,
+            ],
+        ]);
+    }
+
+    public function testEndpointsCheckARouteWithoutAFrequencyEveryFifteenMinutes(): void
     {
         $key = fake()->sha1();
         $path = sprintf('/%s', fake()->slug());
@@ -63,7 +125,12 @@ class StatusControllerTest extends TestCase
 
         $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
 
-        $response->assertJsonPath('endpoints', [$path]);
+        $response->assertJsonPath('endpoints', [
+            [
+                'path' => $path,
+                'frequency_minutes' => 15,
+            ],
+        ]);
     }
 
     public function testEndpointsContainThePathsOfTheUptimeCheckEnumRoutes(): void
@@ -76,7 +143,27 @@ class StatusControllerTest extends TestCase
 
         $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
 
-        $response->assertJsonPath('endpoints', [route(RouteName::STATUS, [], false)]);
+        $response->assertJsonPath('endpoints', [
+            [
+                'path' => route(RouteName::STATUS, [], false),
+                'frequency_minutes' => 15,
+            ],
+        ]);
+    }
+
+    public function testEndpointsRefuseAFrequencyBelowOneMinute(): void
+    {
+        $key = fake()->sha1();
+
+        $this->setConfiguration('compass-client.key', $key);
+        $this->setConfiguration('compass-client.uptime_checks.paths', [
+            sprintf('/%s', fake()->slug()) => fake()->numberBetween(-60, 0),
+        ]);
+
+        $this->withoutExceptionHandling();
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->withToken($key)->getJson(route(RouteName::STATUS));
     }
 
     public function testStatusContainsTheValuesOfABoundStatus(): void

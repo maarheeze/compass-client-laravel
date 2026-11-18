@@ -12,7 +12,7 @@ The package auto-registers via Laravel's package discovery.
 
 ## Configuration
 
-Set the key Compass sends as a bearer token. It is the same key on every site and in Compass itself:
+Set the key Compass sends as a bearer token. Compass generates it for this site and shows it on the site's page:
 
 ```dotenv
 COMPASS_CLIENT_KEY=your-key
@@ -22,18 +22,6 @@ If you want to override the path the status is served at, which defaults to `/_c
 
 ```dotenv
 COMPASS_CLIENT_PATH=/_compass
-```
-
-The paths Compass checks for uptime, separated by a comma, defaults to `/`:
-
-```dotenv
-COMPASS_CLIENT_UPTIME_CHECK_PATHS=/,/contact
-```
-
-The names of the routes Compass checks for uptime, separated by a comma, defaults to none. They are reported as their paths, so a route with required parameters cannot be used:
-
-```dotenv
-COMPASS_CLIENT_UPTIME_CHECK_ROUTES=home,contact
 ```
 
 When [Laravel Nightwatch](https://nightwatch.laravel.com) is installed, the requests from Compass are left out of it. To record them anyway:
@@ -48,6 +36,23 @@ To customize settings beyond the environment variables, publish the config file 
 
 ```bash
 php artisan vendor:publish --tag=compass-client-config
+```
+
+### Uptime checks
+
+The paths and the names of the routes Compass checks for uptime are set in the published config. Each is checked every 15 minutes, or at the number of minutes given with it. A route is reported as its path, so a route with required parameters cannot be used. By default only `/` is checked:
+
+```php
+'uptime_checks' => [
+    'paths' => [
+        '/',
+        '/contact' => 60,
+    ],
+    'routes' => [
+        'home' => 5,
+        RouteName::CHECKOUT,
+    ],
+],
 ```
 
 ## License
