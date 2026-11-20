@@ -17,7 +17,7 @@ class AuthenticateCompassTest extends TestCase
         $key = fake()->sha1();
         $this->setConfiguration('compass-client.key', $key);
 
-        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
 
         $response->assertOk();
     }
@@ -26,7 +26,7 @@ class AuthenticateCompassTest extends TestCase
     {
         $this->setConfiguration('compass-client.key', fake()->sha1());
 
-        $response = $this->getJson(route(RouteName::STATUS));
+        $response = $this->postJson(route(RouteName::STATUS));
 
         $response->assertUnauthorized();
     }
@@ -35,7 +35,7 @@ class AuthenticateCompassTest extends TestCase
     {
         $this->setConfiguration('compass-client.key', fake()->unique()->sha1());
 
-        $response = $this->withToken(fake()->unique()->sha1())->getJson(route(RouteName::STATUS));
+        $response = $this->withToken(fake()->unique()->sha1())->postJson(route(RouteName::STATUS));
 
         $response->assertUnauthorized();
     }
@@ -44,7 +44,7 @@ class AuthenticateCompassTest extends TestCase
     {
         $this->setConfiguration('compass-client.key', null);
 
-        $response = $this->withToken(fake()->sha1())->getJson(route(RouteName::STATUS));
+        $response = $this->withToken(fake()->sha1())->postJson(route(RouteName::STATUS));
 
         $response->assertUnauthorized();
     }
@@ -53,7 +53,7 @@ class AuthenticateCompassTest extends TestCase
     {
         $this->setConfiguration('compass-client.key', '');
 
-        $response = $this->withToken('')->getJson(route(RouteName::STATUS));
+        $response = $this->withToken('')->postJson(route(RouteName::STATUS));
 
         $response->assertUnauthorized();
     }

@@ -27,8 +27,7 @@ class CompassClientServiceProvider extends ServiceProvider
     public function boot(Repository $config, Router $router): void
     {
         $path = $config->string('compass-client.path');
-
-        $route = $router->get($path, StatusController::class)->name(RouteName::STATUS);
+        $route = $router->post($path, StatusController::class)->name(RouteName::STATUS);
 
         if ($config->boolean('compass-client.nightwatch_ignore') && class_exists(Sample::class)) {
             $route->middleware(Sample::never());

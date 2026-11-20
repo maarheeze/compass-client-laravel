@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Maarheeze\CompassClient\Tests\Feature\Http\Controllers;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Config\Repository;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 use Illuminate\Routing\UrlGenerator;
@@ -43,7 +45,7 @@ class StatusControllerTest extends TestCase
             $paths[1] => $frequenciesInMinutes[1],
         ]);
 
-        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
 
         $response->assertExactJson([
             'app_debug' => $debug,
@@ -62,6 +64,47 @@ class StatusControllerTest extends TestCase
         ]);
     }
 
+    public function testStatusRemembersTheCompassApiUrl(): void
+    {
+        $key = fake()->sha1();
+        $compassApiUrl = fake()->url();
+        $validUntil = CarbonImmutable::instance(fake()->dateTimeBetween('+1 hour', '+1 day'));
+        $this->setConfiguration('compass-client.key', $key);
+
+        $this->withToken($key)->postJson(route(RouteName::STATUS), [
+            'compass_api_url' => $compassApiUrl,
+            'compass_api_url_valid_until' => $validUntil->toIso8601String(),
+        ]);
+
+        $cache = $this->app->make(CacheRepository::class);
+        $this->assertSame($compassApiUrl, $cache->get('compass-client.compass_api_url'));
+    }
+
+    public function testStatusKeepsTheRememberedCompassApiUrlWhenNoneIsSent(): void
+    {
+        $key = fake()->sha1();
+        $rememberedCompassApiUrl = fake()->url();
+        $cache = $this->app->make(CacheRepository::class);
+        $cache->put('compass-client.compass_api_url', $rememberedCompassApiUrl);
+        $this->setConfiguration('compass-client.key', $key);
+
+        $this->withToken($key)->postJson(route(RouteName::STATUS));
+
+        $this->assertSame($rememberedCompassApiUrl, $cache->get('compass-client.compass_api_url'));
+    }
+
+    public function testStatusRefusesACompassApiUrlWithoutItsValidUntil(): void
+    {
+        $key = fake()->sha1();
+        $this->setConfiguration('compass-client.key', $key);
+
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS), [
+            'compass_api_url' => fake()->url(),
+        ]);
+
+        $response->assertUnprocessable();
+    }
+
     public function testEndpointsCheckAPathWithoutAFrequencyEveryFifteenMinutes(): void
     {
         $key = fake()->sha1();
@@ -70,7 +113,7 @@ class StatusControllerTest extends TestCase
         $this->setConfiguration('compass-client.key', $key);
         $this->setConfiguration('compass-client.uptime_checks.paths', [$path]);
 
-        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
 
         $response->assertJsonPath('endpoints', [
             [
@@ -97,7 +140,7 @@ class StatusControllerTest extends TestCase
         $this->setConfiguration('compass-client.uptime_checks.paths', []);
         $this->setConfiguration('compass-client.uptime_checks.routes', [$routeName => $frequencyMinutes]);
 
-        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
 
         $response->assertJsonPath('endpoints', [
             [
@@ -123,7 +166,7 @@ class StatusControllerTest extends TestCase
         $this->setConfiguration('compass-client.uptime_checks.paths', []);
         $this->setConfiguration('compass-client.uptime_checks.routes', [$routeName]);
 
-        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
 
         $response->assertJsonPath('endpoints', [
             [
@@ -141,7 +184,7 @@ class StatusControllerTest extends TestCase
         $this->setConfiguration('compass-client.uptime_checks.paths', []);
         $this->setConfiguration('compass-client.uptime_checks.routes', [RouteName::STATUS]);
 
-        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
 
         $response->assertJsonPath('endpoints', [
             [
@@ -163,7 +206,7 @@ class StatusControllerTest extends TestCase
         $this->withoutExceptionHandling();
         $this->expectException(InvalidArgumentException::class);
 
-        $this->withToken($key)->getJson(route(RouteName::STATUS));
+        $this->withToken($key)->postJson(route(RouteName::STATUS));
     }
 
     public function testStatusContainsTheValuesOfABoundStatus(): void
@@ -194,7 +237,7 @@ class StatusControllerTest extends TestCase
             };
         });
 
-        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
 
         $response->assertJsonPath('custom', $value);
         $response->assertJsonStructure([

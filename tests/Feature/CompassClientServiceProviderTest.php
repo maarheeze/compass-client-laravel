@@ -22,7 +22,7 @@ class CompassClientServiceProviderTest extends TestCase
         $this->setConfiguration('compass-client.key', $key);
         $this->app->maintenanceMode()->activate([]);
 
-        $response = $this->withToken($key)->getJson(route(RouteName::STATUS));
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
 
         $response->assertOk();
     }
