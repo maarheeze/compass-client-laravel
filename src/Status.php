@@ -6,6 +6,7 @@ namespace Maarheeze\CompassClient;
 
 use BackedEnum;
 use Illuminate\Config\Repository;
+use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Routing\UrlGenerator;
 use InvalidArgumentException;
 use Webmozart\Assert\Assert;
@@ -19,6 +20,7 @@ class Status
 
     public function __construct(
         protected readonly Repository $config,
+        protected readonly MaintenanceMode $maintenanceMode,
         protected readonly UrlGenerator $urlGenerator,
     ) {
     }
@@ -32,6 +34,7 @@ class Status
             'app_debug' => $this->config->boolean('app.debug'),
             'app_env' => $this->config->string('app.env'),
             'app_name' => $this->config->string('app.name'),
+            'maintenance_mode' => $this->maintenanceMode->active(),
             'endpoints' => [
                 ...$this->uptimeCheckPathEndpoints(),
                 ...$this->uptimeCheckRouteEndpoints(),

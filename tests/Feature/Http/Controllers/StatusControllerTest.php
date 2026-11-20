@@ -7,6 +7,7 @@ namespace Maarheeze\CompassClient\Tests\Feature\Http\Controllers;
 use Carbon\CarbonImmutable;
 use Illuminate\Config\Repository;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Routing\Router;
 use Illuminate\Routing\UrlGenerator;
 use InvalidArgumentException;
@@ -51,6 +52,7 @@ class StatusControllerTest extends TestCase
             'app_debug' => $debug,
             'app_env' => $environment,
             'app_name' => $name,
+            'maintenance_mode' => false,
             'endpoints' => [
                 [
                     'path' => $paths[0],
@@ -62,6 +64,18 @@ class StatusControllerTest extends TestCase
                 ],
             ],
         ]);
+    }
+
+    public function testStatusReportsMaintenanceModeWhileTheSiteIsDown(): void
+    {
+        $key = fake()->sha1();
+        $this->setConfiguration('app.maintenance.driver', 'array');
+        $this->setConfiguration('compass-client.key', $key);
+        $this->app->maintenanceMode()->activate([]);
+
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
+
+        $response->assertJsonPath('maintenance_mode', true);
     }
 
     public function testStatusRemembersTheCompassApiUrl(): void
@@ -216,13 +230,19 @@ class StatusControllerTest extends TestCase
         $value = fake()->word();
         $this->setConfiguration('compass-client.key', $key);
         $this->app->bind(Status::class, static function (Application $app) use ($value): Status {
-            return new class ($app->make(Repository::class), $app->make(UrlGenerator::class), $value) extends Status {
+            return new class (
+                $app->make(Repository::class),
+                $app->make(MaintenanceMode::class),
+                $app->make(UrlGenerator::class),
+                $value,
+            ) extends Status {
                 public function __construct(
                     Repository $config,
+                    MaintenanceMode $maintenanceMode,
                     UrlGenerator $urlGenerator,
                     private readonly string $value,
                 ) {
-                    parent::__construct($config, $urlGenerator);
+                    parent::__construct($config, $maintenanceMode, $urlGenerator);
                 }
 
                 /**
@@ -245,6 +265,7 @@ class StatusControllerTest extends TestCase
             'app_debug',
             'app_env',
             'app_name',
+            'maintenance_mode',
             'endpoints',
         ]);
     }
