@@ -5,18 +5,17 @@ declare(strict_types=1);
 namespace Maarheeze\CompassClient\Http\Middleware;
 
 use Closure;
-use Illuminate\Config\Repository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Maarheeze\CompassClient\SiteKey;
 use Symfony\Component\HttpFoundation\Response;
 
 use function hash_equals;
-use function is_string;
 
 readonly class AuthenticateCompass
 {
     public function __construct(
-        private Repository $config,
+        private SiteKey $siteKey,
     ) {
     }
 
@@ -34,13 +33,9 @@ readonly class AuthenticateCompass
 
     private function isCompass(Request $request): bool
     {
-        $key = $this->config->get('compass-client.key');
+        $siteKey = $this->siteKey->configured();
 
-        if (!is_string($key)) {
-            return false;
-        }
-
-        if ($key === '') {
+        if ($siteKey === null) {
             return false;
         }
 
@@ -50,6 +45,6 @@ readonly class AuthenticateCompass
             return false;
         }
 
-        return hash_equals($key, $bearerToken);
+        return hash_equals($siteKey, $bearerToken);
     }
 }

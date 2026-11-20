@@ -6,11 +6,11 @@ namespace Maarheeze\CompassClient\Tests\Feature\Http\Controllers;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Config\Repository;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
 use Illuminate\Routing\UrlGenerator;
 use InvalidArgumentException;
+use Maarheeze\CompassClient\CompassApiUrl;
 use Maarheeze\CompassClient\Http\RouteName;
 use Maarheeze\CompassClient\Status;
 use Maarheeze\CompassClient\Tests\TestCase;
@@ -67,30 +67,31 @@ class StatusControllerTest extends TestCase
     public function testStatusRemembersTheCompassApiUrl(): void
     {
         $key = fake()->sha1();
-        $compassApiUrl = fake()->url();
+        $url = fake()->url();
         $validUntil = CarbonImmutable::instance(fake()->dateTimeBetween('+1 hour', '+1 day'));
         $this->setConfiguration('compass-client.key', $key);
 
         $this->withToken($key)->postJson(route(RouteName::STATUS), [
-            'compass_api_url' => $compassApiUrl,
+            'compass_api_url' => $url,
             'compass_api_url_valid_until' => $validUntil->toIso8601String(),
         ]);
 
-        $cache = $this->app->make(CacheRepository::class);
-        $this->assertSame($compassApiUrl, $cache->get('compass-client.compass_api_url'));
+        $compassApiUrl = $this->app->make(CompassApiUrl::class);
+        $this->assertSame($url, $compassApiUrl->url());
     }
 
     public function testStatusKeepsTheRememberedCompassApiUrlWhenNoneIsSent(): void
     {
         $key = fake()->sha1();
-        $rememberedCompassApiUrl = fake()->url();
-        $cache = $this->app->make(CacheRepository::class);
-        $cache->put('compass-client.compass_api_url', $rememberedCompassApiUrl);
+        $rememberedUrl = fake()->url();
+        $compassApiUrl = $this->app->make(CompassApiUrl::class);
+        $validUntil = CarbonImmutable::instance(fake()->dateTimeBetween('+1 hour', '+1 day'));
+        $compassApiUrl->remember($rememberedUrl, $validUntil);
         $this->setConfiguration('compass-client.key', $key);
 
         $this->withToken($key)->postJson(route(RouteName::STATUS));
 
-        $this->assertSame($rememberedCompassApiUrl, $cache->get('compass-client.compass_api_url'));
+        $this->assertSame($rememberedUrl, $compassApiUrl->url());
     }
 
     public function testStatusRefusesACompassApiUrlWithoutItsValidUntil(): void

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Webmozart\Assert\Assert;
+
 return [
 
     /*
@@ -39,6 +41,19 @@ return [
     */
 
     'key' => env('COMPASS_CLIENT_KEY'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Compass API timeout
+    |--------------------------------------------------------------------------
+    |
+    | The number of seconds the site waits for Compass when it asks Compass
+    | to inspect it again, on `php artisan down` and `up`. Those commands
+    | wait at most this long.
+    |
+    */
+
+    'compass_api_timeout_seconds' => (int) Assert::integerish(env('COMPASS_CLIENT_COMPASS_API_TIMEOUT_SECONDS', 10)),
 
     /*
     |--------------------------------------------------------------------------
