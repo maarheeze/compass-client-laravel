@@ -67,9 +67,7 @@ return [
     */
 
     'uptime_checks' => [
-        'paths' => [
-            '/',
-        ],
+        'paths' => [],
         'routes' => [],
     ],
 
