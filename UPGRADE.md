@@ -2,16 +2,9 @@
 
 Breaking changes per major version, newest first.
 
-## 2.x to 3.0
+## 3.x to 4.0
 
 PHP 8.4 is required.
-
-Compass reads the status with a `POST` instead of a `GET`. Upgrade Compass to a
-version that posts, or it can no longer read the site.
-
-Only `/` was checked for uptime by default; nothing is checked now. If you
-relied on that default, add `'/'` to `uptime_checks.paths` in the published
-config.
 
 The status reports when the scheduler last ran, recorded each time
 `schedule:run` starts in the default cache store. The scheduler and the web
@@ -24,6 +17,11 @@ If you extend `Status`, its constructor takes three more parameters:
 `Illuminate\Console\Scheduling\Schedule $schedule` and
 `SchedulerLastRun $schedulerLastRun` after `$maintenanceMode`. Pass them on to
 `parent::__construct()`.
+
+## 2.x to 3.0
+
+Compass reads the status with a `POST` instead of a `GET`. Upgrade Compass to a
+version that posts, or it can no longer read the site.
 
 ## 1.x to 2.0
 
