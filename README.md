@@ -55,6 +55,10 @@ The paths and the names of the routes Compass checks for uptime are set in the p
 ],
 ```
 
+### Scheduler and queue
+
+The status reports the tasks in the site's schedule, when the scheduler last ran and the driver of the default queue connection, so Compass can tell whether the scheduler and a queue worker are needed and running. The scheduler's last run is recorded each time `schedule:run` starts, in the default cache store, so the scheduler and the web server need to share that store, as a database or Redis store does. No task is added to the site's schedule.
+
 ## License
 
 MIT

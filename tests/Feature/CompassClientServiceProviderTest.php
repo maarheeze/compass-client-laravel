@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maarheeze\CompassClient\Tests\Feature;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Foundation\Events\MaintenanceModeDisabled;
 use Illuminate\Foundation\Events\MaintenanceModeEnabled;
@@ -14,7 +15,10 @@ use Illuminate\Routing\Router;
 use Laravel\Nightwatch\Http\Middleware\Sample;
 use Maarheeze\CompassClient\CompassApiUrl;
 use Maarheeze\CompassClient\Http\RouteName;
+use Maarheeze\CompassClient\SchedulerLastRun;
 use Maarheeze\CompassClient\Tests\TestCase;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
 
 use function fake;
 use function route;
@@ -69,5 +73,15 @@ class CompassClientServiceProviderTest extends TestCase
         $this->app->make(Dispatcher::class)->dispatch(new MaintenanceModeDisabled());
 
         $http->assertSentCount(1);
+    }
+
+    public function testBootRecordsASchedulerRunWhenTheScheduleRunStarts(): void
+    {
+        $this->app->make(Dispatcher::class)->dispatch(
+            new CommandStarting('schedule:run', new ArrayInput([]), new NullOutput()),
+        );
+
+        $schedulerLastRun = $this->app->make(SchedulerLastRun::class);
+        $this->assertNotNull($schedulerLastRun->lastRanAt());
     }
 }

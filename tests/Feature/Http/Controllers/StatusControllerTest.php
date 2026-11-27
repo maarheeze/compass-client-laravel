@@ -6,6 +6,9 @@ namespace Maarheeze\CompassClient\Tests\Feature\Http\Controllers;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Config\Repository;
+use Illuminate\Console\Application as ConsoleApplication;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Routing\Router;
@@ -13,6 +16,7 @@ use Illuminate\Routing\UrlGenerator;
 use InvalidArgumentException;
 use Maarheeze\CompassClient\CompassApiUrl;
 use Maarheeze\CompassClient\Http\RouteName;
+use Maarheeze\CompassClient\SchedulerLastRun;
 use Maarheeze\CompassClient\Status;
 use Maarheeze\CompassClient\Tests\TestCase;
 
@@ -45,6 +49,7 @@ class StatusControllerTest extends TestCase
             $paths[0] => $frequenciesInMinutes[0],
             $paths[1] => $frequenciesInMinutes[1],
         ]);
+        $this->setConfiguration('queue.default', 'sync');
 
         $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
 
@@ -63,7 +68,77 @@ class StatusControllerTest extends TestCase
                     'frequency_minutes' => $frequenciesInMinutes[1],
                 ],
             ],
+            'scheduler' => [
+                'last_ran_at' => null,
+                'tasks' => [],
+            ],
+            'queue_driver' => 'sync',
         ]);
+    }
+
+    public function testSchedulerContainsTheTasksScheduledOnceArtisanStarts(): void
+    {
+        $key = fake()->sha1();
+        $command = fake()->slug();
+        $this->setConfiguration('compass-client.key', $key);
+        ConsoleApplication::starting(static function (ConsoleApplication $artisan) use ($command): void {
+            $artisan->getLaravel()
+                ->make(Schedule::class)
+                ->command($command)
+                ->daily();
+        });
+
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
+
+        $response->assertJsonPath('scheduler.tasks', [
+            [
+                'command' => sprintf('php artisan %s', $command),
+                'expression' => '0 0 * * *',
+            ],
+        ]);
+    }
+
+    public function testSchedulerNamesAClosureTaskByItsDescription(): void
+    {
+        $key = fake()->sha1();
+        $description = fake()->sentence();
+        $this->setConfiguration('compass-client.key', $key);
+        $this->app
+            ->make(Schedule::class)
+            ->call(static function (): void {
+            })
+            ->description($description);
+
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
+
+        $response->assertJsonPath('scheduler.tasks.0.command', $description);
+    }
+
+    public function testSchedulerLastRanAtIsTheRememberedRun(): void
+    {
+        $key = fake()->sha1();
+        $startedAt = CarbonImmutable::instance(fake()->dateTime())->startOfSecond();
+        $this->setConfiguration('compass-client.key', $key);
+        $schedulerLastRun = $this->app->make(SchedulerLastRun::class);
+        $schedulerLastRun->remember($startedAt);
+
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
+
+        $response->assertJsonPath('scheduler.last_ran_at', $startedAt->toIso8601String());
+    }
+
+    public function testQueueDriverIsTheDriverOfTheDefaultConnection(): void
+    {
+        $key = fake()->sha1();
+        $connection = fake()->slug();
+        $driver = fake()->slug();
+        $this->setConfiguration('compass-client.key', $key);
+        $this->setConfiguration('queue.default', $connection);
+        $this->app->make(Repository::class)->set(sprintf('queue.connections.%s', $connection), ['driver' => $driver]);
+
+        $response = $this->withToken($key)->postJson(route(RouteName::STATUS));
+
+        $response->assertJsonPath('queue_driver', $driver);
     }
 
     public function testStatusReportsMaintenanceModeWhileTheSiteIsDown(): void
@@ -232,17 +307,30 @@ class StatusControllerTest extends TestCase
         $this->app->bind(Status::class, static function (Application $app) use ($value): Status {
             return new class (
                 $app->make(Repository::class),
+                $app->make(ConsoleKernel::class),
                 $app->make(MaintenanceMode::class),
+                $app->make(Schedule::class),
+                $app->make(SchedulerLastRun::class),
                 $app->make(UrlGenerator::class),
                 $value,
             ) extends Status {
                 public function __construct(
                     Repository $config,
+                    ConsoleKernel $consoleKernel,
                     MaintenanceMode $maintenanceMode,
+                    Schedule $schedule,
+                    SchedulerLastRun $schedulerLastRun,
                     UrlGenerator $urlGenerator,
                     private readonly string $value,
                 ) {
-                    parent::__construct($config, $maintenanceMode, $urlGenerator);
+                    parent::__construct(
+                        $config,
+                        $consoleKernel,
+                        $maintenanceMode,
+                        $schedule,
+                        $schedulerLastRun,
+                        $urlGenerator,
+                    );
                 }
 
                 /**
@@ -267,6 +355,8 @@ class StatusControllerTest extends TestCase
             'app_name',
             'maintenance_mode',
             'endpoints',
+            'scheduler',
+            'queue_driver',
         ]);
     }
 }

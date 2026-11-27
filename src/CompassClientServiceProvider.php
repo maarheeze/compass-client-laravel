@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Maarheeze\CompassClient;
 
+use Carbon\FactoryImmutable;
 use Illuminate\Config\Repository;
+use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Foundation\Events\MaintenanceModeDisabled;
 use Illuminate\Foundation\Events\MaintenanceModeEnabled;
@@ -15,7 +17,9 @@ use Laravel\Nightwatch\Http\Middleware\Sample;
 use Maarheeze\CompassClient\Http\Controllers\StatusController;
 use Maarheeze\CompassClient\Http\Middleware\AuthenticateCompass;
 use Maarheeze\CompassClient\Http\RouteName;
+use Maarheeze\CompassClient\Listeners\RecordSchedulerRun;
 use Maarheeze\CompassClient\Listeners\RequestInspection;
+use Psr\Clock\ClockInterface;
 
 use function class_exists;
 use function config_path;
@@ -26,6 +30,8 @@ class CompassClientServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/compass-client.php', 'compass-client');
+
+        $this->app->bindIf(ClockInterface::class, FactoryImmutable::class);
     }
 
     public function boot(Repository $config, Dispatcher $events, Router $router): void
@@ -33,6 +39,7 @@ class CompassClientServiceProvider extends ServiceProvider
         $path = $config->string('compass-client.path');
 
         $this->listenForMaintenanceModeChanges($events);
+        $this->listenForSchedulerRuns($events);
         $this->registerStatusRoute($config, $router, $path);
         $this->excludeFromMaintenanceMode($path);
         $this->publishConfig();
@@ -50,6 +57,11 @@ class CompassClientServiceProvider extends ServiceProvider
             MaintenanceModeEnabled::class,
         ];
         $events->listen($requestInspectionEvents, RequestInspection::class);
+    }
+
+    private function listenForSchedulerRuns(Dispatcher $events): void
+    {
+        $events->listen(CommandStarting::class, RecordSchedulerRun::class);
     }
 
     private function publishConfig(): void

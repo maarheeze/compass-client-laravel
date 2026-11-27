@@ -6,6 +6,10 @@ namespace Maarheeze\CompassClient;
 
 use BackedEnum;
 use Illuminate\Config\Repository;
+use Illuminate\Console\Scheduling\CallbackEvent;
+use Illuminate\Console\Scheduling\Event;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Contracts\Foundation\MaintenanceMode;
 use Illuminate\Routing\UrlGenerator;
 use InvalidArgumentException;
@@ -13,6 +17,7 @@ use Webmozart\Assert\Assert;
 
 use function is_int;
 use function is_string;
+use function sprintf;
 
 class Status
 {
@@ -20,7 +25,10 @@ class Status
 
     public function __construct(
         protected readonly Repository $config,
+        protected readonly ConsoleKernel $consoleKernel,
         protected readonly MaintenanceMode $maintenanceMode,
+        protected readonly Schedule $schedule,
+        protected readonly SchedulerLastRun $schedulerLastRun,
         protected readonly UrlGenerator $urlGenerator,
     ) {
     }
@@ -39,6 +47,11 @@ class Status
                 ...$this->uptimeCheckPathEndpoints(),
                 ...$this->uptimeCheckRouteEndpoints(),
             ],
+            'scheduler' => [
+                'last_ran_at' => $this->schedulerLastRun->lastRanAt()?->toIso8601String(),
+                'tasks' => $this->scheduledTasks(),
+            ],
+            'queue_driver' => $this->queueDriver(),
         ];
     }
 
@@ -53,6 +66,18 @@ class Status
         ];
     }
 
+    private function loadConsoleSchedule(): void
+    {
+        $this->consoleKernel->all();
+    }
+
+    private function queueDriver(): string
+    {
+        $queueConnection = $this->config->string('queue.default');
+
+        return $this->config->string(sprintf('queue.connections.%s.driver', $queueConnection));
+    }
+
     private function routePath(mixed $routeName): string
     {
         if ($routeName instanceof BackedEnum) {
@@ -64,6 +89,42 @@ class Status
         }
 
         throw new InvalidArgumentException('A route name must be a string or a backed enum.');
+    }
+
+    /**
+     * @return array{command: string, expression: string}
+     */
+    private function scheduledTask(Event $event): array
+    {
+        return [
+            'command' => $this->scheduledTaskCommand($event),
+            'expression' => $event->expression,
+        ];
+    }
+
+    private function scheduledTaskCommand(Event $event): string
+    {
+        if ($event instanceof CallbackEvent) {
+            return $event->getSummaryForDisplay();
+        }
+
+        return Event::normalizeCommand(Assert::string($event->command));
+    }
+
+    /**
+     * @return list<array{command: string, expression: string}>
+     */
+    private function scheduledTasks(): array
+    {
+        $this->loadConsoleSchedule();
+
+        $scheduledTasks = [];
+
+        foreach ($this->schedule->events() as $event) {
+            $scheduledTasks[] = $this->scheduledTask($event);
+        }
+
+        return $scheduledTasks;
     }
 
     /**
