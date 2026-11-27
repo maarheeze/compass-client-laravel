@@ -40,7 +40,7 @@ php artisan vendor:publish --tag=compass-client-config
 
 ### Uptime checks
 
-The paths and the names of the routes Compass checks for uptime are set in the published config. Each is checked every 15 minutes, or at the number of minutes given with it. A route is reported as its path, so a route with required parameters cannot be used. By default only `/` is checked:
+The paths and the names of the routes Compass checks for uptime are set in the published config. Each is checked every 15 minutes, or at the number of minutes given with it. A route is reported as its path, so a route with required parameters cannot be used. By default nothing is checked. For example:
 
 ```php
 'uptime_checks' => [
